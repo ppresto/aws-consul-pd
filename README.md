@@ -1,4 +1,4 @@
-# AWS-Consul
+# aws-consul-pd
 This repo builds the required AWS Networking and EKS resources to run self hosted Consul clusters on EKS in two different regions.  Transit gateways are peered to allow for inner-region connectivity to test distributed services and failover with Consul.
 
 ## Pre Reqs

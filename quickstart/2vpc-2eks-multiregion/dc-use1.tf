@@ -46,7 +46,7 @@ locals {
           "eks_desired_size" : 1,            # used for pool size and consul replicas size
           "eks_instance_type" : "m5.large", # m5.large(2cpu,8mem), m5.2xlarge(8cpu,32mem)
           #"service_ipv4_cidr" : "10.17.16.0/24" #Can't overlap with VPC CIDR
-          "consul_helm_chart_template" : "values-server.yaml",
+          "consul_helm_chart_template" : "values-server-sm-apigw.yaml",
           "consul_datacenter" : "use1",
           "consul_type" : "server"
         }
