@@ -18,6 +18,7 @@ cd quickstart/2vpc-2eks-multiregion
 terraform init
 terraform apply -auto-approve
 ```
+**NOTE**, the initial apply might fail and require multiple applies to properly setup transit gateways across 2 regions, peer them, and establish routes.
 
 ### Connect to EKS clusters
 Connect to EKS using `scripts/kubectl_connect_eks.sh`.  Pass this script the path to the terraform state file used to provision the EKS cluster.  If cwd is ./2vpc-2eks-multiregion like above then this command would look like the following:
