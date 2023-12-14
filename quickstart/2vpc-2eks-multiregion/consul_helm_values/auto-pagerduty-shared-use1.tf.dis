@@ -1,0 +1,25 @@
+module "consul_pagerduty-shared-use1" {
+  source   = "../../../modules/helm_install_consul"
+  providers = { aws = aws.use1 }
+  release_name  = "consul-use1-shared-shared"
+  chart_name         = "consul"
+  cluster_name         = "pagerduty-shared-use1"
+  datacenter           = "use1"
+  consul_partition     = "default"
+  consul_type          = "server"
+  server_replicas      = "1"
+  consul_version       = "1.17.0-ent"
+  consul_license       = file("../../../files/consul.lic")
+  consul_helm_chart_template = "values-server.yaml"
+  #consul_helm_chart_template  = "values-dataplane-hcp.yaml"
+  #consul_helm_chart_template = "values-server.yaml"
+  #consul_helm_chart_template = "values-dataplane.yaml"
+  consul_helm_chart_version  = "1.3.0"
+  consul_external_servers    = "NO_HCP_SERVERS" #HCP private endpoint address
+  eks_cluster_endpoint       = "https://A61D05D0A3D9D50608012AEF7584B329.gr7.us-east-1.eks.amazonaws.com"
+  hcp_consul_ca_file             = ""
+  hcp_consul_config_file             = ""
+  hcp_consul_root_token_secret_id = ""
+  node_selector = ""
+}
+
