@@ -1,0 +1,10 @@
+apiVersion: consul.hashicorp.com/v1alpha1         # required
+kind: SamenessGroup                               # required
+metadata:
+  name: shared-sameness-group
+spec:
+  defaultForFailover: true
+  members:
+    - partition: default
+    - peer: usw2-default
+    - peer: use1-default

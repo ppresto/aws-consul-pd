@@ -31,7 +31,7 @@ This script connects EKS and builds some useful aliases shown in the output.
 This AWS LB controller is required to map internal NLB or ALBs to kubernetes services.  The helm templates used to install consul will attempt to leverage this controller.  This repo is adding the required tags to public and private subnets in order for the LB to properly discover them.  After connecting to the EKS clusters run this script.
 
 ```
-../../install_aws_controller.sh .
+../../scripts/install_awslb_controller.sh .
 ```
 
 ### Install Consul
@@ -49,5 +49,6 @@ usw2  #alias created to switch context to the usw2 eks cluster
 
 Next, run the following script to get the external LB URL and Consul Token
 ```
-../../setConsulEnv.sh
+cd ..
+../../scripts/setConsulEnv.sh
 ```

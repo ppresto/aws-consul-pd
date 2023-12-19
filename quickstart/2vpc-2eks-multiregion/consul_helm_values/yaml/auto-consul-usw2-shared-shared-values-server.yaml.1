@@ -1,19 +1,19 @@
 global:
   name: consul
-  image: "hashicorp/consul-enterprise:${consul_version}"
-  #imageK8S: docker.mirror.hashicorp.services/hashicorp/consul-k8s-control-plane:${consul_helm_chart_version}
+  image: "hashicorp/consul-enterprise:1.17.0-ent"
+  #imageK8S: docker.mirror.hashicorp.services/hashicorp/consul-k8s-control-plane:1.3.0
   #imageConsulDataplane: "hashicorp/consul-dataplane:1.0.0"
   enableConsulNamespaces: true
   enterpriseLicense:
     secretName: 'consul-ent-license'
     secretKey: 'key'
     enableLicenseAutoload: true
-  datacenter: ${datacenter}
+  datacenter: usw2
   peering:
     enabled: true
   adminPartitions:
     enabled: true
-    name: ${partition}
+    name: default
 
   # TLS configures whether Consul components use TLS.
   tls:
@@ -21,18 +21,14 @@ global:
     httpsOnly: false  # Metrics are exposed on 8500 only (http).  Anonymous policy requires Agent "read" if ACL enabled.
   acls:
     manageSystemACLs: true
-  %{~ if node_selector != "" ~}
-    nodeSelector: |
-      ${node_selector}
-  %{~ endif ~}
   metrics:
     enabled: true
     enableGatewayMetrics: true
     enableAgentMetrics: true
     agentMetricsRetentionTime: "59m"
 server:
-  replicas: ${server_replicas}
-  bootstrapExpect: ${server_replicas}
+  replicas: 1
+  bootstrapExpect: 1
   exposeService:
     # When enabled, deploys a Kubernetes Service to reach the Consul servers.
     # @type: boolean
@@ -40,10 +36,6 @@ server:
     type: LoadBalancer
     annotations: |
       service.beta.kubernetes.io/aws-load-balancer-type: "nlb-ip"
-  %{~ if node_selector != "" ~}
-  nodeSelector: |
-    ${node_selector}
-  %{~ endif ~}
  
   extraConfig: |
     {
@@ -60,34 +52,22 @@ dns:
   enabled: true
   enableRedirection: true
 
-%{~ if node_selector != "" ~}
-webhookCertManager:
-  nodeSelector: |
-    ${node_selector}
-%{~ endif ~}
-
 connectInject:
   enabled: true
   default: false
   apiGateway:
     manageExternalCRDs: true
-    managedGatewayClass:
-      serviceType: LoadBalancer
-      copyAnnotations:
-        service:
-          annotations: |
-            - service.beta.kubernetes.io/aws-load-balancer-scheme
-            - service.beta.kubernetes.io/aws-load-balancer-type
+    serviceType: LoadBalancer
+    copyAnnotations:
+      service:
+        annotations: |
+          service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
   transparentProxy:
     defaultEnabled: false
   consulNamespaces:
     mirroringK8S: true
   cni:
     enabled: true
-  %{~ if node_selector != "" ~}
-  nodeSelector: |
-    ${node_selector}
-  %{~ endif ~}
   metrics:
     defaultEnabled: true # by default, this inherits from the value global.metrics.enabled
     defaultEnableMerging: true
@@ -126,18 +106,10 @@ meshGateway:
     type: LoadBalancer
     annotations: |
       service.beta.kubernetes.io/aws-load-balancer-type: "nlb-ip"
-  %{~ if node_selector != "" ~}
-  nodeSelector: |
-    ${node_selector}
-  %{~ endif ~}
 ingressGateways:
   enabled: true
   defaults:
     replicas: 1
-    %{~ if node_selector != "" ~}
-    nodeSelector: |
-      ${node_selector}
-    %{~ endif ~}
   gateways:
     - name: ingress-gateway
       service:
