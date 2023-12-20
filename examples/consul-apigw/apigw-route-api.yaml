@@ -17,4 +17,4 @@ spec:
     - kind: Service
       name: api
       namespace: api
-      port: 8080
+      port: 9091

@@ -52,3 +52,8 @@ Next, run the following script to get the external LB URL and Consul Token
 cd ..
 ../../scripts/setConsulEnv.sh
 ```
+
+
+## References
+Circuit Breaking
+https://developer.hashicorp.com/consul/tutorials/developer-mesh/service-mesh-circuit-breaking#set-up-circuit-breaking

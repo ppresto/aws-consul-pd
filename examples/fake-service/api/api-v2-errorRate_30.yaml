@@ -19,11 +19,11 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: api-deployment
+  name: api-v2
   namespace: api
   labels:
     app: api
-    version: v1
+    version: v2
     service: fake-service
 spec:
   replicas: 1
@@ -40,8 +40,8 @@ spec:
         consul.hashicorp.com/connect-inject: 'true'
         consul.hashicorp.com/transparent-proxy: 'true'
         #consul.hashicorp.com/envoy-extra-args: '--log-level debug --disable-hot-restart'
-        consul.hashicorp.com/service-tags: 'v1'
-        consul.hashicorp.com/service-meta-version: 'v1'
+        consul.hashicorp.com/service-tags: 'v2'
+        consul.hashicorp.com/service-meta-version: 'v2'
     spec:
       serviceAccountName: api
       containers:
@@ -51,15 +51,19 @@ spec:
             - containerPort: 9091
           env:
             - name: 'LISTEN_ADDR'
-              value: '0.0.0.0:9091'
+              value: '127.0.0.1:9091'
             #- name: 'UPSTREAM_URIS'
             #  value: 'grpc://currency.currency-ns:9090,http://payments.payments-ns:9090'
             - name: 'NAME'
-              value: 'api (default.ap/api.ns)'
+              value: 'api-v2 (default.ap/api.ns)'
             - name: 'MESSAGE'
               value: 'API response'
             - name: 'SERVER_TYPE'
               value: 'http'
+            - name: 'ERROR_RATE'
+              value: "0.30"
+            - name: "ERROR_DELAY"
+              value: '1s'
             - name: 'TIMING_50_PERCENTILE'
               value: '20ms'
             - name: 'TIMING_90_PERCENTILE'
@@ -70,5 +74,3 @@ spec:
               value: '10'
             - name: 'HTTP_CLIENT_APPEND_REQUEST'
               value: 'true'
-            - name: 'TRACING_ZIPKIN'
-              value: 'http://simplest-collector.default:9411'
