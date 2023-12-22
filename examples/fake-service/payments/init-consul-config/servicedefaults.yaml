@@ -1,0 +1,8 @@
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceDefaults
+metadata:
+  name: payments
+  namespace: payments
+spec:
+  protocol: "http"
+  #localRequestTimeoutMs: 6000 # x-envoy-expected-rq-timeout-ms - HTTP requests to the local application instance.

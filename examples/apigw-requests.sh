@@ -8,7 +8,7 @@ export WAIT_TIME=1
 downstream_requests() {
     echo "Consul APIGW - http://${APIGW_URL}${URL_PATH} , sending reqs to - ${UPSTREAM}"
     for i in {1..500}; do 
-        curl -s -L http://${APIGW_URL}${URL_PATH}  | jq -r ".upstream_calls.\"${UPSTREAM}\" | \"\(.name),\(.code)\""
+        curl -s -L http://${APIGW_URL}${URL_PATH}  | jq -r ".upstream_calls.\"${UPSTREAM}\" | \"\(.name), \(.code), \(.duration)\""
         sleep ${WAIT_TIME};
     done
 }
@@ -18,7 +18,7 @@ upstream_requests() {
     echo "Consul APIGW - http://${APIGW_URL}${URL_PATH} , sending reqs to - ${UPSTREAM}"
     for i in {1..500}; do 
         curl -s -L http://${APIGW_URL}${URL_PATH}  | jq -r ".| \"\(.name),\(.code)\""
-        sleep ${WAIT_TIME};
+       sleep ${WAIT_TIME};
     done
 }
 

@@ -27,15 +27,14 @@ kubectl apply -f consul-apigw/
 ### Get apigw URL
 ```
 export APIGW_URL=$(kubectl get services --namespace=consul api-gateway -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-
-echo "Wait for the external DNS name to be resolvable"
 nslookup ${APIGW_URL}
+###   WARNING: Wait for the external DNS name to be resolvable
 ```
 
 ## Access the services using the HTTP routes defined in the apigw
 ```
+echo "http://${APIGW_URL}/ui"
 echo "http://${APIGW_URL}/"
-echo "http://${APIGW_URL}/web"
 echo "http://${APIGW_URL}/api"
 ```
 

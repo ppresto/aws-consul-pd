@@ -60,6 +60,8 @@ spec:
               value: 'API response'
             - name: 'SERVER_TYPE'
               value: 'http'
+            - name: 'ERROR_TYPE'
+              value: 'http_error'
             - name: 'ERROR_RATE'
               value: "0.30"
             - name: "ERROR_DELAY"

@@ -5,7 +5,7 @@ CTX1=usw2
 deploy() {
     # deploy eastus services
     kubectl config use-context ${CTX1}
-    kubectl create ns api
+    kubectl create ns payments
    #kubectl apply -f ${SCRIPT_DIR}/init-consul-config/samenessGroup.yaml
     kubectl apply -f ${SCRIPT_DIR}/init-consul-config
     kubectl apply -f ${SCRIPT_DIR}/
@@ -15,7 +15,7 @@ delete() {
     kubectl config use-context ${CTX1}
     kubectl delete -f ${SCRIPT_DIR}/
     kubectl delete -f ${SCRIPT_DIR}/init-consul-config
-    kubectl delete ns api
+    kubectl delete ns payments
 }
 
 #Cleanup if any param is given on CLI

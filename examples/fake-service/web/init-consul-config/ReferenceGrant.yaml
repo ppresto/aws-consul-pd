@@ -1,11 +1,9 @@
-## This ReferenceGrant enables the Consul API Gateway to route traffic to the default namespace.
-## Every namespace that you want to route traffic to must have a ReferenceGrant
 ---
 apiVersion: gateway.networking.k8s.io/v1alpha2
 kind: ReferenceGrant
 metadata:
   name: consul-reference-grant
-  namespace: default
+  namespace: web
 spec:
   from:
     - group: gateway.networking.k8s.io

@@ -32,7 +32,7 @@ spec:
   - matches:
     - path:
         type: Exact
-        value: /web
+        value: /ui
     backendRefs:
     - kind: Service
       name: web

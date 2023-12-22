@@ -6,7 +6,7 @@ deploy() {
     # deploy eastus services
     kubectl config use-context ${CTX1}
     kubectl create ns web
-    #kubectl apply -f ${SCRIPT_DIR}/init-consul-config/samenessGroup.yaml
+    kubectl apply -f ${SCRIPT_DIR}/init-consul-config/samenessGroup.yaml
     kubectl apply -f ${SCRIPT_DIR}/init-consul-config
     kubectl apply -f ${SCRIPT_DIR}/
 }
