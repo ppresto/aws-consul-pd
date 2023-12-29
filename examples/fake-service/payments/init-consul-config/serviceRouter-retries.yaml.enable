@@ -1,15 +1,15 @@
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceRouter
 metadata:
-  name: api
-  namespace: api
+  name: payments
+  namespace: payments
 spec:
   routes:
     - match:
         http:
           pathPrefix: /
       destination:
-        requestTimeout: 20s  #total time permitted for the entire downstream request to be processed, including retry attempts.
+        #requestTimeout: 5000ms  #total time permitted for the entire downstream request to be processed, including retry attempts.
         numRetries: 3
         retryOnConnectFailure: true
         retryOn: ['reset','connect-failure','refused-stream','unavailable','cancelled','retriable-4xx','5xx','gateway-error']

@@ -1,6 +1,10 @@
 #!/bin/bash
 SCRIPT_DIR=$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)
-CTX1=usw2
+#CTX1=usw2
+
+if [[ -z $CTX1 ]]; then
+    CTX1=$(kubectl config current-context)
+fi
 
 deploy() {
     # deploy eastus services

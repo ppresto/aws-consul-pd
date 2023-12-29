@@ -11,6 +11,8 @@ spec:
     - name: api-gateway
       namespace: consul
       action: allow
+      samenessGroup: shared-sameness-group
     - name: web
       namespace: web
       action: allow
+      samenessGroup: shared-sameness-group

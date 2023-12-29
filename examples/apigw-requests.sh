@@ -8,8 +8,16 @@ export WAIT_TIME=1
 downstream_requests() {
     echo "Consul APIGW - http://${APIGW_URL}${URL_PATH} , sending reqs to - ${UPSTREAM}"
     for i in {1..500}; do 
-        curl -s -L http://${APIGW_URL}${URL_PATH}  | jq -r ".upstream_calls.\"${UPSTREAM}\" | \"\(.name), \(.code), \(.duration)\""
-        sleep ${WAIT_TIME};
+    #    curl -s -L http://${APIGW_URL}${URL_PATH} | jq -r ".upstream_calls.\"${UPSTREAM}\" | \"\(.name), \(.code), \(.duration)\""
+       #TEMP=$(time curl -s -L http://${APIGW_URL}${URL_PATH})
+       TEMP=$(curl -s -L http://${APIGW_URL}${URL_PATH})
+       if $(echo ${TEMP} | jq -e >/dev/null 2>&1); then
+          echo ${TEMP} | jq -r ".upstream_calls.\"${UPSTREAM}\" | \"\(.name), \(.code), \(.duration)\""
+       else
+          REAL_TIME=$(echo ${TEMP} | grep real | awk '{print $2}')
+          echo "${TEMP}"
+       fi 
+       sleep ${WAIT_TIME};
     done
 }
 

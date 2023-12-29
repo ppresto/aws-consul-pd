@@ -15,4 +15,4 @@ spec:
         - pathPrefix: "/"
           requestsPerSecond: 200
           requestsMaxBurst: 500
-  localRequestTimeoutMs: 18000 # x-envoy-expected-rq-timeout-ms - HTTP requests to the local application instance.
+  #localRequestTimeoutMs: 20000 # x-envoy-expected-rq-timeout-ms - HTTP requests to the local application instance.

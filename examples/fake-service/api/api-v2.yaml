@@ -1,20 +1,3 @@
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: api
-  namespace: api
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: api
-  namespace: api
-spec:
-  selector:
-    app: api
-  ports:
-    - port: 9091
-      targetPort: 9091
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -66,6 +49,10 @@ spec:
               value: '30ms'
             - name: 'TIMING_99_PERCENTILE'
               value: '40ms'
+            - name: 'HTTP_SERVER_READ_TIMEOUT'
+              value: '0s'
+            - name: 'HTTP_SERVER_WRITE_TIMEOUT'
+              value: '0s'
             - name: 'TIMING_VARIANCE'
               value: '10'
             - name: 'HTTP_CLIENT_APPEND_REQUEST'

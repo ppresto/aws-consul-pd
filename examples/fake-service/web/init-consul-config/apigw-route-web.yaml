@@ -44,3 +44,12 @@ spec:
           path:
             replacePrefixMatch: /ui
             type: ReplacePrefixMatch
+---
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: RouteTimeoutFilter
+metadata:
+  name: route-web
+  namespace: web
+spec:
+  idleTimeout: 20s
+  requestTimeout: 20s

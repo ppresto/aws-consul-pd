@@ -51,7 +51,8 @@
 
 ## Transit Gateway
 * VPCs need unique IP ranges unless using a mesh gateways across consul data centers.
-* Review VPC Route Table and ensure the TGW is set as a target to all Destinations that need access to HCP
+* Review VPC Route Table and ensure the TGW is set as a target to all Destinations that need access to HCP or Peered TGW
+* Make sure both source and destination subnets have each others routes defined to use the local TGW
 * [AWS TGW Troubleshooting Guide](https://aws.amazon.com/premiumsupport/knowledge-center/transit-gateway-fix-vpc-connection/)
 * [Hashicorp TGW UI Setup Video](https://youtu.be/tw7FK_uUwqI?t=527
 https://learn.hashicorp.com/tutorials/cloud/amazon-transit-gateway?in=consul/)
