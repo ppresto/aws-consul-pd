@@ -169,7 +169,8 @@ kubectl apply -f fake-service/payments/init-consul-config/servicedefaults-localR
 ./fake-service/web/deploy.sh -d
 ./fake-service/api/deploy.sh -d
 ./fake-service/payments/deploy.sh -d
-kubectl delete -f fake-service/api/api-v3.yaml.enable
+kubectl delete -f ./fake-service/api/api-v3.yaml.enable
+kubectl delete -f consul-apigw/
 ```
 
 ### Notes
@@ -187,8 +188,20 @@ kubectl -n api exec deploy/api-v3 -c api -- curl -s localhost:19000/clusters | g
 kubectl -n payments exec -it deployment/payments-v1 -c payments -- curl -s localhost:19000/clusters | grep health
 ```
 
-API Gateway config_dump
+API Gateway : /config_dump
 ```
-kubectl debug -it -n consul api-gateway-76977b45df-jsvz2 --target api-gateway --image nicolaka/netshoot -- curl localhost:19000/config_dump\?include_eds | code -
+kubectl debug -it -n consul $(kubectl -n consul get pods -l gateway.consul.hashicorp.com/name=api-gateway --output jsonpath='{.items[0].metadata.name}') --target api-gateway --image nicolaka/netshoot -- curl localhost:19000/config_dump\?include_eds | code -
+```
+
+Mesh Gateway : /clusters
+```
+kubectl debug -it -n consul $(kubectl -n consul get pods -l component=mesh-gateway --output jsonpath='{.items[0].metadata.name}') --target mesh-gateway --image nicolaka/netshoot -- curl localhost:19000/clusters | code -
+```
+
+Sameness Groups (usw2)
+```
+usw2
+source ../scripts/setConsul.sh
+curl -sk --header "X-Consul-Token: ${CONSUL_HTTP_TOKEN}" "${CONSUL_HTTP_ADDR}"/v1/config/sameness-group | jq
 
 ```
