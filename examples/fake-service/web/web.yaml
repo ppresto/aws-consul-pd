@@ -19,7 +19,7 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: web-deployment
+  name: web-v1
   namespace: web
   labels:
     app: web
@@ -53,7 +53,10 @@ spec:
             - name: 'LISTEN_ADDR'
               value: '0.0.0.0:9091'
             - name: 'UPSTREAM_URIS'
-              value: 'http://api.api:9091'
+              #value: 'http://api.api:9091'
+              value: 'http://api.virtual.api.ns.consul:9091'
+              #value: 'http://api.virtual.api.ns.usw2.dc.consul:9091'
+              #value: 'http://api.service.api.ns.shared-sameness-group.sg.consul:9091'
             - name: 'NAME'
               value: 'web (default.ap/web.ns)'
             - name: 'MESSAGE'
@@ -68,6 +71,10 @@ spec:
               value: '40ms'
             - name: 'TIMING_VARIANCE'
               value: '10'
+            - name: 'HTTP_SERVER_READ_TIMEOUT'
+              value: '0s'
+            - name: 'HTTP_SERVER_WRITE_TIMEOUT'
+              value: '0s'
             - name: 'HTTP_CLIENT_APPEND_REQUEST'
               value: 'true'
             - name: 'TRACING_ZIPKIN'

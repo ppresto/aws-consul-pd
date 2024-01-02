@@ -63,7 +63,7 @@ spec:
             - name: 'ERROR_TYPE'
               value: 'http_error'
             - name: 'ERROR_RATE'
-              value: "0.30"
+              value: "0.50"
             - name: "ERROR_DELAY"
               value: '1s'
             - name: 'TIMING_50_PERCENTILE'
@@ -74,5 +74,9 @@ spec:
               value: '40ms'
             - name: 'TIMING_VARIANCE'
               value: '10'
+            - name: 'HTTP_SERVER_READ_TIMEOUT'
+              value: '0s'
+            - name: 'HTTP_SERVER_WRITE_TIMEOUT'
+              value: '0s'
             - name: 'HTTP_CLIENT_APPEND_REQUEST'
               value: 'true'

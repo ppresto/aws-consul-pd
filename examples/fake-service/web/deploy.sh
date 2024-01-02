@@ -1,12 +1,16 @@
 #!/bin/bash
 SCRIPT_DIR=$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)
-CTX1=usw2
+#CTX1=usw2
+
+if [[ -z $CTX1 ]]; then
+    CTX1=$(kubectl config current-context)
+fi
 
 deploy() {
     # deploy eastus services
     kubectl config use-context ${CTX1}
     kubectl create ns web
-    kubectl apply -f ${SCRIPT_DIR}/init-consul-config/samenessGroup.yaml
+    kubectl apply -f ${SCRIPT_DIR}/init-consul-config/sg-samenessGroup.yaml
     kubectl apply -f ${SCRIPT_DIR}/init-consul-config
     kubectl apply -f ${SCRIPT_DIR}/
 }

@@ -57,3 +57,7 @@ cd ..
 ## References
 Circuit Breaking
 https://developer.hashicorp.com/consul/tutorials/developer-mesh/service-mesh-circuit-breaking#set-up-circuit-breaking
+
+API GW Timeouts
+https://developer.hashicorp.com/consul/docs/connect/gateways/api-gateway/configuration/routeretryfilter
+https://developer.hashicorp.com/consul/docs/connect/gateways/api-gateway/configuration/routetimeoutfilter

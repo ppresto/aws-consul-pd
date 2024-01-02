@@ -2,11 +2,11 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: api-v2
+  name: api-v1
   namespace: api
   labels:
     app: api
-    version: v2
+    version: v1
     service: fake-service
 spec:
   replicas: 1
@@ -23,8 +23,8 @@ spec:
         consul.hashicorp.com/connect-inject: 'true'
         consul.hashicorp.com/transparent-proxy: 'true'
         #consul.hashicorp.com/envoy-extra-args: '--log-level debug --disable-hot-restart'
-        consul.hashicorp.com/service-tags: 'v2'
-        consul.hashicorp.com/service-meta-version: 'v2'
+        consul.hashicorp.com/service-tags: 'v1'
+        consul.hashicorp.com/service-meta-version: 'v1'
     spec:
       serviceAccountName: api
       containers:
@@ -38,23 +38,23 @@ spec:
             #- name: 'UPSTREAM_URIS'
             #  value: 'grpc://currency.currency-ns:9090,http://payments.payments-ns:9090'
             - name: 'NAME'
-              value: 'api-v2 (default.ap/api.ns)'
+              value: 'api-v1 (default.ap/api.ns)'
             - name: 'MESSAGE'
               value: 'API response'
             - name: 'SERVER_TYPE'
               value: 'http'
             - name: 'TIMING_50_PERCENTILE'
-              value: '20ms'
+              value: '1000ms'
             - name: 'TIMING_90_PERCENTILE'
-              value: '30ms'
+              value: '1400ms'
             - name: 'TIMING_99_PERCENTILE'
-              value: '40ms'
+              value: '1500ms'
+            - name: 'TIMING_VARIANCE'
+              value: '10'
             - name: 'HTTP_SERVER_READ_TIMEOUT'
               value: '0s'
             - name: 'HTTP_SERVER_WRITE_TIMEOUT'
               value: '0s'
-            - name: 'TIMING_VARIANCE'
-              value: '10'
             - name: 'HTTP_CLIENT_APPEND_REQUEST'
               value: 'true'
             - name: 'TRACING_ZIPKIN'

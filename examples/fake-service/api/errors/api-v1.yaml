@@ -19,11 +19,11 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: api-v3
+  name: api-v1
   namespace: api
   labels:
     app: api
-    version: v3
+    version: v1
     service: fake-service
 spec:
   replicas: 1
@@ -40,8 +40,8 @@ spec:
         consul.hashicorp.com/connect-inject: 'true'
         consul.hashicorp.com/transparent-proxy: 'true'
         #consul.hashicorp.com/envoy-extra-args: '--log-level debug --disable-hot-restart'
-        consul.hashicorp.com/service-tags: 'v3'
-        consul.hashicorp.com/service-meta-version: 'v3'
+        consul.hashicorp.com/service-tags: 'v1'
+        consul.hashicorp.com/service-meta-version: 'v1'
     spec:
       serviceAccountName: api
       containers:
@@ -52,21 +52,27 @@ spec:
           env:
             - name: 'LISTEN_ADDR'
               value: '127.0.0.1:9091'
+            #- name: 'UPSTREAM_URIS'
+            #  value: 'grpc://currency.currency-ns:9090,http://payments.payments-ns:9090'
             - name: 'NAME'
-              value: 'api-v3 (default.ap/api.ns)'
-            - name: 'UPSTREAM_URIS'
-              value: 'http://payments.payments:9091'
+              value: 'api-v1 (default.ap/api.ns)'
             - name: 'MESSAGE'
               value: 'API response'
             - name: 'SERVER_TYPE'
               value: 'http'
-            - name: 'ERROR_TYPE'
-              value: 'delay'
             - name: 'TIMING_50_PERCENTILE'
-              value: '1000ms'
+              value: '20ms'
             - name: 'TIMING_90_PERCENTILE'
-              value: '1400ms'
+              value: '30ms'
             - name: 'TIMING_99_PERCENTILE'
-              value: '1500ms'
+              value: '40ms'
+            - name: 'TIMING_VARIANCE'
+              value: '10'
+            - name: 'HTTP_SERVER_READ_TIMEOUT'
+              value: '0s'
+            - name: 'HTTP_SERVER_WRITE_TIMEOUT'
+              value: '0s'
             - name: 'HTTP_CLIENT_APPEND_REQUEST'
               value: 'true'
+            - name: 'TRACING_ZIPKIN'
+              value: 'http://simplest-collector.default:9411'

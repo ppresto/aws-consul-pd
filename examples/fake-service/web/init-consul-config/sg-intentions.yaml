@@ -1,13 +1,14 @@
+---
 apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceIntentions
 metadata:
-  name: payments
+  name: api-gateway-web
 spec:
   destination:
-    name: payments
-    namespace: payments
+    name: web
+    namespace: web
   sources:
-    - name: api
-      namespace: api
+    - name: api-gateway
+      namespace: consul
       action: allow
       samenessGroup: shared-sameness-group

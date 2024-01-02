@@ -5,4 +5,4 @@ metadata:
   namespace: payments
 spec:
   protocol: "http"
-  localRequestTimeoutMs: 20000 # x-envoy-expected-rq-timeout-ms - HTTP requests to the local application instance.
+  localRequestTimeoutMs: 10000 # x-envoy-expected-rq-timeout-ms - HTTP requests to the local application instance.

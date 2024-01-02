@@ -43,7 +43,7 @@ locals {
           "cluster_endpoint_public_access" : true,
           "eks_min_size" : 1,
           "eks_max_size" : 3,
-          "eks_desired_size" : 1,            # used for pool size and consul replicas size
+          "eks_desired_size" : 1,           # used for pool size and consul replicas size
           "eks_instance_type" : "m5.large", # m5.large(2cpu,8mem), m5.2xlarge(8cpu,32mem)
           #"service_ipv4_cidr" : "10.17.16.0/24" #Can't overlap with VPC CIDR
           "consul_helm_chart_template" : "values-server-sm-apigw.yaml",
@@ -243,13 +243,13 @@ module "vpc-usw2" {
     transit_gw = "true"
   }
   private_subnet_tags = {
-    Tier                                                                              = "Private"
-    "kubernetes.io/role/internal-elb"                                                 = 1
+    Tier                                                                                       = "Private"
+    "kubernetes.io/role/internal-elb"                                                          = 1
     "kubernetes.io/cluster/${try(local.usw2.usw2-shared.eks.shared.cluster_name, var.prefix)}" = "shared"
   }
   public_subnet_tags = {
-    Tier                                                                              = "Public"
-    "kubernetes.io/role/elb"                                                          = 1
+    Tier                                                                                     = "Public"
+    "kubernetes.io/role/elb"                                                                 = 1
     "kubernetes.io/cluster/${try(local.usw2[each.key].eks.shared.cluster_name, var.prefix)}" = "shared"
   }
   default_route_table_tags = {
@@ -355,7 +355,7 @@ module "consul_ec2_iam_profile-usw2" {
   providers = {
     aws = aws.usw2
   }
-  source = "../../modules/hcp_consul_ec2_iam_profile"
+  source    = "../../modules/hcp_consul_ec2_iam_profile"
   role_name = "consul_usw2"
 }
 module "hcp_consul_ec2_client-usw2" {
@@ -446,7 +446,7 @@ output "usw2_eks_cluster_endpoints" {
 }
 output "usw2_eks_cluster_names" {
   description = "The name/id of the EKS cluster. Will block on cluster creation until the cluster is really ready"
-  value       = { for k, v in local.eks_map_usw2  : module.eks-usw2[k].cluster_name => data.aws_region.usw2.name }
+  value       = { for k, v in local.eks_map_usw2 : module.eks-usw2[k].cluster_name => data.aws_region.usw2.name }
 }
 ### Transit Gateway
 output "usw2_ec2_transit_gateway_arn" {

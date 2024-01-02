@@ -6,6 +6,9 @@ metadata:
 spec:
   config:
     protocol: http
+    # local_connect_timeout_ms: 20000
+    # local_request_timeout_ms: 20000
+    # local_idle_timeout_ms : 20000
   meshGateway:
     mode: 'local'
   accessLogs:
