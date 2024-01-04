@@ -118,7 +118,7 @@ kubectl delete -f fake-service/api/init-consul-config/serviceRouter-retries.yaml
 
 ## Timeouts
 ![Envoy Timeouts](https://github.com/ppresto/aws-consul-pd/blob/main/request_timeout.png?raw=true)
-The request_timeout is a feature of the [Envoy HTTP connection manager (proto) — envoy 1.29.0-dev-cd13b6](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#envoy-v3-api-field-extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-request-timeout). For a lifecycle of a request, the final timeout is min(A,B,C). When a request has a timeout, the downstream will show an HTTP Status code **504**.  The HTTP request in the Envoy log will have this header `x-envoy-expected-rq-timeout-ms` indicating the time Envoy will wait for its upstream.  There are a few different types of timeouts and ways to configure them.  Here is a brief overview.
+The request_timeout is a feature of the [Envoy HTTP connection manager (proto) — envoy 1.29.0-dev-cd13b6](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#envoy-v3-api-field-extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-request-timeout). For a lifecycle of a request, the final timeout is min(A,B,C). When a request has a timeout, the downstream will show an HTTP Status code **504**.  The HTTP request in the Envoy log will have this header `x-envoy-expected-rq-timeout-ms` indicating the time Envoy will wait for its upstream.  Certain applications might require more than the default 15-second timeout of Envoy to respond, necessitating a configuration for extended timeouts. Conversely, others could respond in less than 1 second, desiring a shorter timeout so it can fail quickly and retry a healthy instance.  Here is a brief overview of timeouts in Consul.
 
 | Object | Field | Purpose |
 | ---------------- | -------------------- | ---------------------------------------------------------- |
@@ -127,79 +127,112 @@ The request_timeout is a feature of the [Envoy HTTP connection manager (proto) �
 | [ServiceRouters](https://developer.hashicorp.com/consul/docs/connect/config-entries/service-router#routes-destination-requesttimeout) | RequestTimeout | Specifies the total amount of time permitted for the entire downstream request to be processed, including retry attempts. Configuration wise, this will generate the same Envoy timeout config as the ServiceResolver|
 | [ProxyDefaults](https://developer.hashicorp.com/consul/docs/connect/proxies/envoy#proxy-config-options) | local_connect_timeout_ms\n local_request_timeout_ms\n local_idle_timeout_ms | Global settings that affect all proxies are configured here. It's recommended to set timeouts in ServiceDefaults, and ServiceRouters at the service level if possible. These 3 examples show the time permitted to make connections, HTTP requests, and allow idle HTTP time.|
 
+The following guide will walk through the setup of an upstream application that requires an extended timeout beyond the defaults set by Envoy.  It will then address timeouts for the downstream applications that consume this upstream service as well as timeouts set in the API gateway routes.  This exercise will address timeouts at every stage of the workflow `[ APIGW -> web -> api -> payments]`
+
 Start with a working environment
 ```
 ./fake-service/web/deploy.sh
 ./fake-service/api/deploy.sh
 kubectl apply -f consul-apigw/
 ```
+Wait for the apigw to be resolvable in DNS and then validate access using the browser or script: `./apigw-requests.sh -w 1`
 
-Deploy an `api-v3` and `payments` service.  `api` makes requests to the new upstream, `payments`. This new service is configured to error 50% of the time with an HTTP 500 status code, and takes 15 seconds or more to process successful requests. 
+
+Deploy `api-v3` and `payments` services. `api-v3` makes requests to a new upstream service, `payments`. This new service is configured to error 50% of the time with an HTTP 500 status code, and successful requests will be take more than >15s. 
 ```
 ./fake-service/payments/deploy.sh
 kubectl delete -f fake-service/api/
 kubectl apply -f fake-service/api/api-v3.yaml.enable
 ```
-* Successful requests taking more then 15s will timeout with an HTTP **504** status code because this is greater then the default envoy timeout of 15s.
-* `payments` is configured to error ~50% of the time. Unsuccessful requests will respond in ~4 sec with an HTTP 500 status code.
 
-From the `api` container verify upstream requests taking longer then 15s to payments are timing out  and shorter requests (~4s) are returning an HTTP 500.  Run the following command a few times to see the different results.
-```
-kubectl -n api exec -it deployment/api-v3 -c api -- /usr/bin/curl -s localhost:9091
-```
-The output shows `payments` returning 500 errors as well as 504 timeouts.  Run this command a couple times to see if the same errors are happening from the `payments` container.
-
+### Verify local application container is healthy
+First, verify the `payments` service container is working as expected.  
 ```
 kubectl -n payments exec -it deployment/payments-v1 -c payments -- /usr/bin/curl -s localhost:9091
 ```
-`payments` returns successful 200 codes 50% of the time and 500 error codes 50% of the time when tested locally.  Update 2 timeout settings for payments so downstream requests wont timeout and are aware of the additional time requirements.
+It should return successful 200 codes after 15s and 500 error codes after 4s.  Note: This was a local application test and didn't use any envoy proxies.
+
+The `api` service is registered to the Consul service mesh so it will have an envoy sidecar proxy.  This means all requests from `api` will route through its envoy sidecar proxy to the target upstream.  `[]` will be used to highlight requests inside the service mesh or in other words using envoy.
+
+### Verify service mesh requests to [payments]
+Next, from the `api` container make requests to `[payments]`.  Verify some requests timeout.
+* Successful requests > 15s will timeout with an HTTP **504** status code
+* Unsuccessful requests will take ~4 sec to respond with an HTTP 500 status code and not timeout.
+```
+kubectl -n api exec -it deployment/api-v3 -c api -- /usr/bin/curl -s localhost:9091
+```
+Run the command multiple times to see `payments` HTTP responses (500 Server Error | 504 timeout).
+
+Update 2 timeout settings for `payments` so downstream requests from the `api` (envoy sidecar proxy) wont timeout.
 ```
 kubectl apply -f fake-service/payments/init-consul-config/servicedefaults-timeout.yaml.enable
 kubectl apply -f fake-service/payments/init-consul-config/serviceResolver-timeout.yaml.enable
 ```
 
-
-Verify `api` can access `payments`
+Now `api` should be able to access `[payments]` successfully 50% of the time.  Run the following command multiple times and look for the response codes (500 Server Error | 200 Success).
 ```
 kubectl -n api exec -it deployment/api-v3 -c api -- /usr/bin/curl -s localhost:9091
 ```
+When testing from the `api` container the service mesh is only used for the upstream call to `[payments]`.
 
-Now verify `web` can access `api` which will call `payments` like before.
+### Verify service mesh requests to [api->payments]
+`api` requests to `[payments]` were just validated above so move to the next downstream service `web`.  Verify `web` can access `[api]` by making requests from the `web` container.  Note, when making requests from the `web` container the service mesh will now be used for  upstreams `[api->payments]`.
 ```
 kubectl -n web exec -it deployment/web-v1 -c web -- /usr/bin/curl -s localhost:9091
 ```
-This will fail because `api` hasn't defined any timeouts telling `web` to wait longer for a request.  Set timeouts for `api` with the following commands and test the workflow again.
+This should timeout because `api` hasn't defined any timeouts telling the `web` services proxy to wait longer for a response.  Set timeouts for `api` with the following commands to tell its downstream's like `web` to wait longer than the default timeout 15s.  Run the last command a couple times to verify HTTP status codes returned are 500 and 200 now.  No more 504 timeouts.
 ```
 kubectl apply -f fake-service/api/init-consul-config/servicedefaults-timeout.yaml.enable
 kubectl apply -f fake-service/api/init-consul-config/serviceResolver-timeout.yaml.enable
 kubectl -n web exec -it deployment/web-v1 -c web -- /usr/bin/curl -s localhost:9091
 ```
-Now requests from `web` should be successful!
+When sending `api` requests to `[payments]` from the local container it worked, but when using `web` to test requests to `[api->payments]` next it failed until `api` was configured with the proper timeouts.  When inside the `api` container its envoy sidecar proxy is only used for the upstream call to `[payments]` so the service mesh is not yet testing the full path `[api->payments]`. When requests are sent from the `web` container its envoy proxy is now sending requests to `[api->payments]` and the `api` service timeouts need to be properly defined.  
 
-Requests from the API GW should fail since it's not aware of the additional timeout requirements.
-Update the API Gateway with a RouteTimeoutFilter for path /api
+### Verify service mesh requests to [web->api->payments]
+Other downstream services in the mesh (like the API Gateway) might be calling `web` so to support `[web->api->payments]` remember to set timeouts for `web` too.
 ```
-kubectl apply -f fake-service/api/init-consul-config/apigw-RouteTimeoutFilter.yaml.enable
-```
-Test this route.  
-```
-./apigw-requests.sh -p /api -u "http://payments.payments:9091"
-```
-Status 500 codes should be returned in ~4s and Status 200 should be seen for the longer 15s requests.
-
-Finally, update both `web` and its API GW routes so everything will work with the new `payments` service.
-```
-kubectl apply -f fake-service/web/init-consul-config/apigw-RouteTimeoutFilter.yaml.enable
 kubectl apply -f fake-service/web/init-consul-config/servicedefaults-timeout.yaml.enable
 kubectl apply -f fake-service/web/init-consul-config/serviceResolver-timeout.yaml.enable
 ```
 
-Verify all services are receiving responses from `payments`
+### Verify external requests to [APIGateway->web->api->payments]
+All requests from within the service mesh (`[web->api->payments]`) should be working with updated timeouts, but what about external requests using the API Gateway? The API GW is not aware of any timeout requirements. Think of it as another downstream service that needs to be configured.  It has routes to both `web` and `api`.
+* http-route: /    - `[APIGW->web->api->payments]`
+* http-route: /api -`[APIGW->api->payments]`
+
+Update the API Gateway with a RouteTimeoutFilter for every http-route that needs more time. Both routes for `web` and `api` will eventually connect to the `payments` upstream so they require a RouteTimeoutFilter.
+```
+kubectl apply -f fake-service/web/init-consul-config/apigw-RouteTimeoutFilter.yaml.enable
+kubectl apply -f fake-service/api/init-consul-config/apigw-RouteTimeoutFilter.yaml.enable
+```
+
+Test API Gateway http-routes using the browser or the following script.
 ```
 ./apigw-requests.sh -p /
 ./apigw-requests.sh -p /api -u "http://payments.payments:9091"
 ```
+This is validating the full end to end request flow.  Payments is configured to return 500 Server errors 50% of the time in 4s.  The other responses should be successful 200 status codes taking >15s to process.
 
+### Configure Retries to eliminate 500 Server Errors from `payments`
+Use a serviceRouter to configure retries.  Configure any timeout requirements inside the serviceRouter using `requestTimeout`. 
+```
+spec:
+  routes:
+    - match:
+        http:
+          pathPrefix: /
+      destination:
+        requestTimeout: 45000ms  #total time permitted for the entire downstream request to be processed, including retry attempts.
+        numRetries: 3
+        retryOnConnectFailure: true
+        retryOn: ['reset','connect-failure','refused-stream','unavailable','cancelled','retriable-4xx','5xx','gateway-error']
+```
+If requests average 15s and the number of desired retries is 3 set `requestTimeout` to 45s or more.
+
+Apply retries to `payments` and verify all requests now are returning successful 200.
+```
+kubectl apply -f fake-service/payments/init-consul-config/serviceRouter-retries.yaml.enable
+```
 
 ### Cleanup
 ```
@@ -211,7 +244,7 @@ kubectl delete -f fake-service/api/init-consul-config/apigw-RouteTimeoutFilter.y
 kubectl delete -f fake-service/api/init-consul-config/serviceResolver-timeout.yaml.enable
 ./fake-service/api/deploy.sh -d
 kubectl delete -f fake-service/payments/init-consul-config/serviceResolver-timeout.yaml.enable
-kubectl delete -f ./fake-service/payments/serviceRouter
+kubectl delete -f fake-service/payments/init-consul-config/serviceRouter-retries.yaml.enable
 ./fake-service/payments/deploy.sh -d
 kubectl delete -f consul-apigw/
 ```
