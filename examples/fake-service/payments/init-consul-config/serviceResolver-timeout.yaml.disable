@@ -1,8 +1,0 @@
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: ServiceResolver
-metadata:
-  name: payments
-  namespace: payments
-spec:
-  connectTimeout: 20s  #timeout duration for establishing new network connections to this service
-  requestTimeout: 20s #timeout duration for receiving an HTTP response from this service

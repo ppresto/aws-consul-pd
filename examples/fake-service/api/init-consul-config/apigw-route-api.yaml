@@ -13,6 +13,12 @@ spec:
     - path:
         type: Exact
         value: /api
+    filters:
+      - type: ExtensionRef
+        extensionRef:
+          group: consul.hashicorp.com
+          kind: RouteTimeoutFilter
+          name: api-route-timeout-filter
     backendRefs:
     - kind: Service
       name: api

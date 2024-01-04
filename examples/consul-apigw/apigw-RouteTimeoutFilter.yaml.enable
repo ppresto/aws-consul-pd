@@ -1,0 +1,8 @@
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: RouteTimeoutFilter
+metadata:
+  name: api-route-timeout-filter
+  namespace: api
+spec:
+  idleTimeout: "20s"
+  requestTimeout: "20s"

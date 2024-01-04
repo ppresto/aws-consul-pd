@@ -59,14 +59,14 @@ Send 5 reqs/sec to / (or 1 request every .2 seconds)
 ```
 All requests to `-p` path / should respond with an HTTP 200 status code
 
-Now send 5 reqs/sec to the rate limited path. Requests to /api-v2 should return an HTTP 429 anytime there is more then 1 req/sec. 
+Now send 5 reqs/sec to the rate limited path. Requests to /api-v2 should return an HTTP 429 anytime there is more then 1 req/sec.
 ```
 ./apigw-requests.sh -w .2 -p /api-v2
 ```
 
 Verify the number of rate limited requests `web` received using envoy stats `consul.external.upstream_rq_429`
 ```
-kubectl -n web exec -it deployment/web-deployment -c web -- /usr/bin/curl -s localhost:19000/stats | grep consul.external.upstream_rq_429
+kubectl -n web exec -it deployment/web-v1 -c web -- /usr/bin/curl -s localhost:19000/stats | grep consul.external.upstream_rq_429
 ```
 Envoy access logs will also show
 ```consul-dataplane {
@@ -107,15 +107,10 @@ kubectl apply -f fake-service/api/init-consul-config/serviceRouter-retries.yaml.
 
 In another terminal window track the total request retry stats for `web` to see each retry as it happens.
 ```
-while true; do kubectl -n web exec -it deployment/web-deployment -c web -- /usr/bin/curl -s localhost:19000/stats | grep "consul.upstream_rq_retry:"; sleep 1; done
+while true; do kubectl -n web exec -it deployment/web-v1 -c web -- /usr/bin/curl -s localhost:19000/stats | grep "consul.upstream_rq_retry:"; sleep 1; done
 ```
-Review all retry stats `kubectl -n web exec -it deployment/web-deployment -c web -- /usr/bin/curl -s localhost:19000/stats | grep "consul.upstream_rq_retry"`
+Review all retry stats `kubectl -n web exec -it deployment/web-v1 -c web -- /usr/bin/curl -s localhost:19000/stats | grep "consul.upstream_rq_retry"`
 
-Get Envoy config_dump
-```
-kubectl -n web exec -it deployment/web-deployment -c web -- /usr/bin/curl -s localhost:19000/config_dump | code -
-kubectl -n api exec -it deployment/api-v1 -c api -- /usr/bin/curl -s localhost:19000/config_dump | code -
-```
 ### Cleanup
 ```
 kubectl delete -f fake-service/api/init-consul-config/serviceRouter-retries.yaml.enable
@@ -136,56 +131,108 @@ Start with a working environment
 ```
 ./fake-service/web/deploy.sh
 ./fake-service/api/deploy.sh
+kubectl apply -f consul-apigw/
 ```
 
-Deploy an `api` service that has a p50 latency of **1000ms**.  This version should take 1 sec to respond and everything should return a status code 200.
+Deploy an `api-v3` and `payments` service.  `api` makes requests to the new upstream, `payments`. This new service is configured to error 50% of the time with an HTTP 500 status code, and takes 15 seconds or more to process successful requests. 
 ```
 ./fake-service/payments/deploy.sh
 kubectl delete -f fake-service/api/
 kubectl apply -f fake-service/api/api-v3.yaml.enable
 ```
+* Successful requests taking more then 15s will timeout with an HTTP **504** status code because this is greater then the default envoy timeout of 15s.
+* `payments` is configured to error ~50% of the time. Unsuccessful requests will respond in ~4 sec with an HTTP 500 status code.
 
-Deploy `payments`.  payments includes api-v3 which is a new version of the `api` service that makes requests to the new upstream, `payments`.  `payments` has a p50 latency of **4000ms**. Any request should timeout with a **504** status code because this instance takes 4000ms to respond which is greater then the `localRequestTimeoutMs: 1000` being set in the `api` serviceDefaults `./fake-service/payments/init-consul-config/servicedefaults.yaml`.
+From the `api` container verify upstream requests taking longer then 15s to payments are timing out  and shorter requests (~4s) are returning an HTTP 500.  Run the following command a few times to see the different results.
+```
+kubectl -n api exec -it deployment/api-v3 -c api -- /usr/bin/curl -s localhost:9091
+```
+The output shows `payments` returning 500 errors as well as 504 timeouts.  Run this command a couple times to see if the same errors are happening from the `payments` container.
 
+```
+kubectl -n payments exec -it deployment/payments-v1 -c payments -- /usr/bin/curl -s localhost:9091
+```
+`payments` returns successful 200 codes 50% of the time and 500 error codes 50% of the time when tested locally.  Update 2 timeout settings for payments so downstream requests wont timeout and are aware of the additional time requirements.
+```
+kubectl apply -f fake-service/payments/init-consul-config/servicedefaults-timeout.yaml.enable
+kubectl apply -f fake-service/payments/init-consul-config/serviceResolver-timeout.yaml.enable
+```
+
+
+Verify `api` can access `payments`
+```
+kubectl -n api exec -it deployment/api-v3 -c api -- /usr/bin/curl -s localhost:9091
+```
+
+Now verify `web` can access `api` which will call `payments` like before.
+```
+kubectl -n web exec -it deployment/web-v1 -c web -- /usr/bin/curl -s localhost:9091
+```
+This will fail because `api` hasn't defined any timeouts telling `web` to wait longer for a request.  Set timeouts for `api` with the following commands and test the workflow again.
+```
+kubectl apply -f fake-service/api/init-consul-config/servicedefaults-timeout.yaml.enable
+kubectl apply -f fake-service/api/init-consul-config/serviceResolver-timeout.yaml.enable
+kubectl -n web exec -it deployment/web-v1 -c web -- /usr/bin/curl -s localhost:9091
+```
+Now requests from `web` should be successful!
+
+Requests from the API GW should fail since it's not aware of the additional timeout requirements.
+Update the API Gateway with a RouteTimeoutFilter for path /api
+```
+kubectl apply -f fake-service/api/init-consul-config/apigw-RouteTimeoutFilter.yaml.enable
+```
+Test this route.  
 ```
 ./apigw-requests.sh -p /api -u "http://payments.payments:9091"
 ```
-This command will bypass `web` and make requests directly to `api` using the api-http-route configured in the APIGW.  Define the payments upstream in order to pull the HTTP status codes from the payments requests that are timing out.
+Status 500 codes should be returned in ~4s and Status 200 should be seen for the longer 15s requests.
 
-Look at the envoy proxy upstream health status for `api`.  
+Finally, update both `web` and its API GW routes so everything will work with the new `payments` service.
 ```
-kubectl -n api exec -it deployment/api-v3 -c api -- curl -s localhost:19000/clusters | grep health
+kubectl apply -f fake-service/web/init-consul-config/apigw-RouteTimeoutFilter.yaml.enable
+kubectl apply -f fake-service/web/init-consul-config/servicedefaults-timeout.yaml.enable
+kubectl apply -f fake-service/web/init-consul-config/serviceResolver-timeout.yaml.enable
 ```
-the `payments` upstream may show a `failed_outlier_check`. This means the cluster failed an outlier detection check. An [outlier_detection](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/outlier) is when envoy determines an upstream cluster is not healthy and ejects it from the load balancing set.
 
-Update the ServiceDefaults for `payments` to allow enough time for local application requests.  Setting `localRequestTimeoutMs: 5000` or higher should be more then enough to support the 4 seconds needed by the  app.
+Verify all services are receiving responses from `payments`
 ```
-kubectl apply -f fake-service/payments/init-consul-config/servicedefaults-localRequestTimeoutMs.yaml.enable
+./apigw-requests.sh -p /
+./apigw-requests.sh -p /api -u "http://payments.payments:9091"
+```
 
-```
 
 ### Cleanup
 ```
+kubectl delete -f fake-service/web/init-consul-config/apigw-RouteTimeoutFilter.yaml.enable
+kubectl delete -f fake-service/web/init-consul-config/serviceResolver-timeout.yaml.enable
 ./fake-service/web/deploy.sh -d
-./fake-service/api/deploy.sh -d
-./fake-service/payments/deploy.sh -d
 kubectl delete -f ./fake-service/api/api-v3.yaml.enable
+kubectl delete -f fake-service/api/init-consul-config/apigw-RouteTimeoutFilter.yaml.enable
+kubectl delete -f fake-service/api/init-consul-config/serviceResolver-timeout.yaml.enable
+./fake-service/api/deploy.sh -d
+kubectl delete -f fake-service/payments/init-consul-config/serviceResolver-timeout.yaml.enable
+kubectl delete -f ./fake-service/payments/serviceRouter
+./fake-service/payments/deploy.sh -d
 kubectl delete -f consul-apigw/
 ```
 
 ### Notes
-Redeploy `payments` with a 50% failure rate and setup retries so failed requests will retry.
+Look at the `api` envoy proxy upstream health status.  
 ```
-kubectl apply -f fake-service/payments/payments-v1-unstable.yaml.enable
-kubectl apply -f fake-service/payments/init-consul-config/serviceRouter-retries.yaml.enable
-./apigw-requests.sh -p /web -u "http://api.api:9091"
+kubectl -n api exec -it deployment/api-v3 -c api -- curl -s localhost:19000/clusters | grep health
 ```
-Note: any request >10 sec will fail with fake-service.
+the `payments` upstream may show a `failed_outlier_check` at some times. This means the cluster failed an outlier detection check. An [outlier_detection](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/upstream/outlier) is when envoy determines an upstream cluster is not healthy and ejects it from the load balancing set.
 
 ```
 kubectl -n web exec -it deployment/web-deployment -c web -- curl -s localhost:19000/clusters | grep health
 kubectl -n api exec deploy/api-v3 -c api -- curl -s localhost:19000/clusters | grep health
 kubectl -n payments exec -it deployment/payments-v1 -c payments -- curl -s localhost:19000/clusters | grep health
+```
+
+Get Envoy config_dump for web, api
+```
+kubectl -n web exec -it deployment/web-deployment -c web -- /usr/bin/curl -s localhost:19000/config_dump | code -
+kubectl -n api exec -it deployment/api-v1 -c api -- /usr/bin/curl -s localhost:19000/config_dump | code -
 ```
 
 API Gateway : /config_dump

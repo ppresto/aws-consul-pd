@@ -1,0 +1,8 @@
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceResolver
+metadata:
+  name: api
+  namespace: api
+spec:
+  connectTimeout: 10s  #timeout duration for establishing new network connections to this service
+  requestTimeout: 45s #timeout duration for receiving an HTTP response from this service

@@ -5,4 +5,4 @@ metadata:
   namespace: web
 spec:
   protocol: "http"
-  #localRequestTimeoutMs: 45000
+  localRequestTimeoutMs: 45000

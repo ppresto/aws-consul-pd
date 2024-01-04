@@ -36,6 +36,11 @@ peering/peer_dc1_to_dc2.sh
 ```
 The Consul UI can be used to peer data centers and verify the health of a peering connection.
 
+### Setup DNS forwarding (optional)
+It can be helpful to lookup remote services using Consul DNS when troubleshooting.  Service calls within the mesh are using the cni plugin and dont require this DNS forwarding.
+```
+../scripts/patch_coredns_to_forward_to_consul.sh
+```
 ## Sameness Groups
 Use sameness groups when deploying services to minimize service configuration and provide failover at the same time.  A sameness group allows a service or group of services to be configured together.  A sameness group consists of the following:
 * SamenessGroup - Define the remote Peers or Partitions the should be used for HA/failover when the local services is unavailable.
