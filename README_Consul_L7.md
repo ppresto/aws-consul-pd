@@ -229,9 +229,10 @@ spec:
 ```
 If requests average 15s and the number of desired retries is 3 set `requestTimeout` to 45s or more.
 
-Apply retries to `payments` and verify all requests now are returning successful 200.
+Apply retries to `payments` and verify all requests are now returning successful 200 codes.
 ```
 kubectl apply -f fake-service/payments/init-consul-config/serviceRouter-retries.yaml.enable
+./apigw-requests.sh -p /
 ```
 
 ### Cleanup
