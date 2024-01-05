@@ -12,6 +12,7 @@ If infrastructure already exists, use the included [Consul helm configuration](h
 ## Pre Reqs
 - Consul Enterprise License `./files/consul.lic`
 - Setup shell with AWS credentials
+- AWS Key Pair
 - Terraform 1.3.7+
 - aws cli
 - kubectl
@@ -20,15 +21,18 @@ If infrastructure already exists, use the included [Consul helm configuration](h
 - jq
 
 ## Getting Started
+```
+cd quickstart/2vpc-2eks-multiregion
+```
+Update the `my.auto.tfvars` for your environment.  Configure your existing AWS Key Pair that is present in both target regions (**us-west-2, us-east-1**) or copy a local SSH key to all your available regions using this script `./scripts/push-aws-sshkey-multiregion.sh`. Review the prefix being used for resource names, the EKS version, and Consul version. 
 
 ### Provision Infrastructure
 Use terraform to build the required AWS Infrastructure
 ```
-cd quickstart/2vpc-2eks-multiregion
 terraform init
 terraform apply -auto-approve
 ```
-**NOTE**, the initial apply might fail and require multiple applies to properly setup transit gateways across 2 regions, peer them, and establish routes.
+**The initial apply might fail** and require multiple applies to properly setup transit gateways across 2 regions, peer them, and establish routes.
 
 ### Connect to EKS clusters
 Connect to EKS using `scripts/kubectl_connect_eks.sh`.  Pass this script the path to the terraform state file used to provision the EKS cluster.  If cwd is ./2vpc-2eks-multiregion like above then this command would look like the following:
@@ -45,13 +49,13 @@ This AWS LB controller is required to map internal NLB or ALBs to kubernetes ser
 ```
 
 ### Install Consul
-This terraform configuration will run helm and create the full helm values file for future modifications.
+This terraform configuration will run helm to install Consul and create thae full helm values.yaml file for reference or to use when making future modifications.
 ```
 cd consul_helm_values
 terraform init
 terraform apply -auto-approve
 ```
-An example consul helm values can be found [here]((https://github.com/ppresto/aws-consul-pd/blob/main/quickstart/2vpc-2eks-multiregion/consul_helm_values/yaml/ex-values-server.yaml))
+An example consul helm values can be found [here]((https://github.com/ppresto/aws-consul-pd/blob/main/quickstart/2vpc-2eks-multiregion/consul_helm_values/yaml/ex-values-server.yaml)).
 
 ### Login to the Consul UI
 Connect to the EKS cluster running the consul server you want to access (usw2 | use1)
@@ -64,8 +68,11 @@ Next, run the following script to get the external LB URL and Consul Root Token 
 cd ..
 ../../scripts/setConsulEnv.sh
 ```
-## Use Cases
-* [Setup API Gateway](https://github.com/ppresto/aws-consul-pd/blob/main/README_Consul_APIGW.md)
+
+
+## Next Steps
+Once the EKS infrastructure is ready, and Consul is deployed it's time to build the service mesh.  A good starting place is to deploy the Consul API Gateway with fake-service.  This will create an ingress into the service mesh with a test service that is designed to validate service mesh traffic management use cases. Once this is setup validate the various use cases.
+* [Deploy the Consul API Gateway and fake-service](https://github.com/ppresto/aws-consul-pd/blob/main/README_Consul_APIGW.md)
 * [circuit breaking](https://github.com/ppresto/aws-consul-pd/blob/main/README_Consul_L7.md#circuit-breaking)
 * [rate limiting](https://github.com/ppresto/aws-consul-pd/blob/main/README_Consul_L7.md#rate-limiting)
 * [retries](https://github.com/ppresto/aws-consul-pd/blob/main/README_Consul_L7.md#retries)
